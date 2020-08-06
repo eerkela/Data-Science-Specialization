@@ -16,5 +16,11 @@ packageVersion("swirl")
 ## Load swirl
 library(swirl)
 
+## Install courses
+install_course("R Programming")
+install_course("Getting and Cleaning Data")
+install_course("Regression Models")
+install_course("Statistical Inference")
+
 ## Launch swirl
 swirl()
