@@ -28,7 +28,8 @@ url <- "https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2Fss06pid.csv"
 dest_file <- "ACS_Data.csv"
 download.file(url, dest_file)
 
-acs <- read.csv(dest_file)conventional <- acs[acs$AGEP < 50, ]$pwgtp1
+acs <- read.csv(dest_file)
+conventional <- acs[acs$AGEP < 50, ]$pwgtp1
 practice_sql <- sqldf("select pwgtp1 from acs where AGEP < 50",
                       host="localhost", user="root")
 all.equal(conventional, practice_sql$pwgtp1)
