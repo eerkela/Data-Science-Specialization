@@ -19,6 +19,7 @@ library(swirl)
 ## Install courses
 install_course("R Programming")
 install_course("Getting and Cleaning Data")
+install_course("Exploratory Data Analysis")
 install_course("Regression Models")
 install_course("Statistical Inference")
 
