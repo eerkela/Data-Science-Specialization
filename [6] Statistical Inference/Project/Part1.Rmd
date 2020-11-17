@@ -1,5 +1,5 @@
 ---
-title: "Statistical Inference Project (Part 1)"
+title: "Statistical Inference Project Part 1: Simulation Exercise"
 author: "Eric Erkela"
 date: "11/16/2020"
 output: pdf_document
@@ -21,7 +21,7 @@ library(ggplot2)
 ```
 
 # Part 1: Simulations
-In the first part of this assignment, we will be applying the Central Limit Theorem (CLT) to show the Gaussian convergence of a set of sample means, each taken from 40 random observations of an exponential distribution(lambda = 0.2).  Before we do, however, we must generate the data itself:
+Before we start analyzing, we need to simulate our raw data.  This will consist of 1000 sample means, each taken from a set of 40 random observations of an exponential distribution (lambda = 0.2).
 
 ``` {r}
 set.seed(123)       # for reproducibility
@@ -32,7 +32,7 @@ sim_means <- apply(sim_data, 1, mean)
 head(sim_means)
 ```
 
-Et voilà! Since our data comes from an exponential distribution for which we know lambda, we can exactly calculate its expected mean/variance.  How do these compare to what we've observed?
+Since our data comes from an exponential distribution for which we know lambda, we can exactly calculate its expected mean/variance.  How do these compare to what we've observed?
 
 ``` {r}
 data.frame(Mean = c(mean(sim_means), 1 / lambda),
@@ -40,7 +40,7 @@ data.frame(Mean = c(mean(sim_means), 1 / lambda),
            row.names = c("Observed", "Expected"))
 ```
 
-Pretty close! This shows that our simulated data does in fact estimate the theoretical population mean/variance of the exponential distribution it is based on, a basic tenet of statistical inference.  If we were to plot the probability density of our sample means by their value, what distribution would we get?  A naïve guess might be that they match the distribution from which they were taken, an exponential with lambda = 0.2.  In this scenario, our data would look something like this, where we've substituted our sample means for the first column of our original, simulated data set.
+Pretty close! This shows that our simulated data does in fact estimate the theoretical population mean/variance of the exponential distribution it is based on, a basic tenet of statistical inference.  If we were to plot the probability density of our sample means by their value, what distribution would we get?  A naïve guess might be that they would match the distribution from which they were taken.  In this scenario, our data would look something like this, where we've substituted our sample means for the first column of our simulated data set.
 
 ``` {r}
 g <- ggplot(data = tibble(value = sim_data[, 1]), aes(x = value))
@@ -55,7 +55,8 @@ g +
                 n = 101,
                 args = list(rate = lambda),
                 color = "red",
-                size = 1)
+                size = 1) + 
+  labs(title = "Simulated Exponential Distribution")
 ```
 
 Makes sense, right?  But what do we actually get?
@@ -84,4 +85,4 @@ g +
        y = "Density")
 ```
 
-As we can see, our sample means are clearly not exponentially distributed (the red line).  Instead, we find that they follow a normal distribution (blue line) with mu = mean(sim_means), which matches the dashed black line in the figure above, and sd = sd(sim_means).  This matches what we'd expect from the CLT.
+As we can see, our sample means are clearly not exponentially distributed.  Instead, we find that they follow a normal distribution (blue line) with mu = mean(sim_means) and sd = sd(sim_means).  This matches what we'd expect from the CLT.

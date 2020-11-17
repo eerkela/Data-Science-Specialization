@@ -1,5 +1,5 @@
 ---
-title: "Statistical Inference Project (Part 2)"
+title: "Statistical Inference Project Part 2: Basic Inferential Data Analysis"
 author: "Eric Erkela"
 date: "11/16/2020"
 output: pdf_document
@@ -33,7 +33,7 @@ As we can see, the data set contains 60 observations of three variables: len (nu
 
 We can perform a quick, exploratory analysis to investigate the relationship between our delivery vector/dosage combinations and tooth growth by making a couple simple box-and-whisker plots, as shown.
 
-``` {r, echo = FALSE, fig.height = 4}
+``` {r, echo = FALSE, fig.height = 4.25}
 g <- ggplot(data = rbind(ToothGrowth,
                          ToothGrowth %>% mutate(supp = "Overall")))
 g + 
