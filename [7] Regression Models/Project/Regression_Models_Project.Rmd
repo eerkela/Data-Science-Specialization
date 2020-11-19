@@ -1,0 +1,115 @@
+---
+title: "Regression Models Project"
+author: "Eric Erkela"
+date: "11/18/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Executive Summary
+In consumer car design, efficiency is the name of the game.  As such, understanding the effect on miles per gallon (mpg) produced by a wide variety of other measures is of the utmost importance.  In this analysis, we will investigate and quantify the relationship between mpg and transmission type (manual/automatic) across Motor Trend's 1974 mtcars data set, provided in the datasets package of the base R installation.
+
+## Dependencies
+Below is the list of all dependencies required for this analysis:
+
+``` {r}
+require(datasets, quietly = TRUE)
+require(dplyr, quietly = TRUE, warn.conflicts = FALSE)
+require(ggplot2, quietly = TRUE)
+```
+
+# Loading and Cleaning the Data
+First, we need to load the mtcars data set.
+
+``` {r}
+data(mtcars)
+str(mtcars)
+```
+
+Consulting with the mtcars data set's help page (?mtcars) can help us decipher the somewhat cryptic variable names in the raw data set and figure out what's going on within it.  As we can see, the data covers fuel consumption and 10 other aspects of automobile design and performance for 32 models from the years 1973-74, as reported by Motor Trend.  Many of the variables are self-explanatory, but the ones that aren't are as follows: drat (rear axle ratio), qsec (1/4 mile time), vs (engine shape - V-shaped/straight), and am (transmission - automatic/manual).  One thing that is immediately apparent upon loading the data is that a few variables which are supposed to represent factors are encoded as numerics instead.  Let's fix those now:
+
+``` {r}
+mtcars$vs <- as.factor(sapply(mtcars$vs, function(num) {
+  if (num == 0) {
+    "V-shaped"
+  } else {
+    "straight"
+  }
+}))
+mtcars$am <- as.factor(sapply(mtcars$am, function(num) {
+  if (num == 0) {
+    "automatic"
+  } else {
+    "manual"
+  }
+}))
+```
+
+# Exploratory Analysis
+Before we jump to model fitting, we should take some time to explore our mtcars data set first.  What can we tell about the relationship between mpg and transmission type at this stage?
+
+``` {r, fig.height = 4}
+g <- ggplot(data = mtcars, aes(x = am, y = mpg, fill = am))
+g + geom_boxplot() + 
+  labs(title = "MPG vs Transmission Type (Automatic/Manual)",
+       x = "Transmission Type")
+```
+
+According to the boxplot above, there seems to be a strong (roughly 10 mpg) difference in the median of those cars that have an automatic vs a manual transmission.  How much of this difference can be explained by other factors, such as weight or horsepower?  To answer this, we'll need to develop a more sophisticated model to fit to our data.
+
+# Fitting a Model
+In order to develop a model for our mtcars data, we will use a series of nested models and ANOVA to determine which variables are worth including.
+
+``` {r}
+# Nested model fits
+fit1 <- lm(mpg ~ am, mtcars)
+fit2 <- update(fit1, mpg ~ am + cyl)
+fit3 <- update(fit1, mpg ~ am + cyl + disp)
+fit4 <- update(fit1, mpg ~ am + cyl + disp + hp)
+fit5 <- update(fit1, mpg ~ am + cyl + disp + hp + drat)
+fit6 <- update(fit1, mpg ~ am + cyl + disp + hp + drat + wt)
+fit7 <- update(fit1, mpg ~ am + cyl + disp + hp + drat + wt + qsec)
+fit8 <- update(fit1, mpg ~ am + cyl + disp + hp + drat + wt + qsec + vs)
+fit9 <- update(fit1, mpg ~ am + cyl + disp + hp + drat + wt + qsec + vs + gear)
+fit10 <- lm(mpg ~ ., mtcars)
+anova(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10)
+```
+
+As we can see from the output, only the inclusion of 3 variables (in addition to am - our transmission type), have a significant positive impact on model fit, as evidenced by the Pr(>F) column of the anova results.  These variables are cyl, hp, and wt, in that order.  As such, our final model will include 4 total predictors for our mpg outcome: am (our variable of interest) and the 3 confounders we identified above.
+
+Let's perform a few diagnostics on our chosen model before we move on:
+
+``` {r}
+bestfit <- lm(mpg ~ am + cyl + hp + wt, mtcars)
+plot(bestfit, which = 1)   # residuals vs fitted values 
+```
+
+Our residuals according to this model appear to be approximately normally distributed, which is a good sign.  How confident can we be that that is in fact the case?
+
+``` {r}
+shapiro.test(bestfit$residuals)
+```
+
+So our p-value for residual normality is small, but not quite below the traditional 5% threshold.  Still, for a simple linear model, this isn't bad at all.
+
+# Results
+Once we've fit our chosen model to the mtcars data set, all we need to do to find which transmission type produces better mpg is inspect the coefficients of our fit.
+
+``` {r}
+summary(bestfit)$coef
+```
+
+The ammanual coefficient shows the estimated mpg increase by switching from an automatic to a manual transmission.  Turning these values into a 95% confidence interval for the effect of switching from an automatic to a manual transmission yields the following results:
+
+``` {r}
+confint(bestfit)[2, ]
+```
+
+Since this interval includes 0, **we do not have enough evidence to suggest that transmission type has a significant impact on mpg** at the 5% confidence threshold. This can also be observed via the p-value associated with the ammanual coefficient in the bestfit summary at the beginning of this section.  This is reproduced below for convenience:
+
+``` {r}
+summary(bestfit)$coef[2, 4]
+```
