@@ -1,0 +1,125 @@
+---
+title: "Practical Machine Learning: Prediction Project"
+author: "Eric Erkela"
+date: "11/22/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Executive Summary
+Using devices such as the *Jawbone Up*, *Nike FuelBand*, and *Fitbit*, it is now possible to collect a large amount of data about personal activity relatively inexpensively.  One consequence of this abundance of data is a newfound ability to not just analyze but predict - in relative detail - the characteristics of the everyday activities that their users perform.  The goal of this project will be to apply this predictive capability as it relates to fitness data.  Using data collected via wearable accelerometers, we will develop a machine learning model to predict whether or not a given subject is performing a barbell lift correctly, and if not, categorize the error(s) they are performing into a variety of classes.
+
+## Dependencies
+Reproduced below is the list of all packages necessary for this analysis:
+
+``` {r}
+require(caret, quietly = TRUE)
+require(parallel, quietly = TRUE)
+require(doParallel, quietly = TRUE)
+set.seed(12345)   # for reproducibility
+```
+
+# Loading and Cleaning Data
+The data for this project come from the Weight Lifting Exercise (WLE) dataset, produced by Velloso et al (2013), which has graciously been made available to the public.  The data consist of readings from 4 accelerometers mounted on the belt, forearm, arm, and dumbbell of 6 study participants, each of whom were asked to perform barbell lifts correctly and incorrectly in 5 different ways.  More information on this dataset can be found at the following url: https://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har.  The original publication that the data is associated with can be found here: https://web.archive.org/web/20170519033209/http://groupware.les.inf.puc-rio.br/public/papers/2013.Velloso.QAR-WLE.pdf
+
+First, we must load the dataset itself:
+
+``` {r, cache = TRUE}
+training <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
+dim(training)
+```
+
+As we can see, our training dataset is quite large (19622 records of 160 different variables).  The names of the variables we have access to are given by:
+
+``` {r}
+names(training)
+```
+
+Where every feature besides "classe" (our outcome: the manner in which the subjects performed the exercise) is a potential predictor.  Since we will be fitting a caret model to this data, we should first evaluate how much of it consists of missing values.
+
+``` {r}
+apply(training, 2, function(i) (mean(is.na(i))))
+```
+
+As we can see, several of our features consist almost entirely of missing values, which will present a problem for us when it comes to model training later on.  Consulting section 5.1 ("Feature extraction and selection") of the original paper offers us some insight as to why this might be the case.  From it, we can see that the original researchers compiled several summary statistics that were calculated at a measurement boundary, resulting in high proportions of missing values and/or #DIV/0! errors.  These statistics correspond to the variable names prefixed by "kurtosis_", "skewness_", "max_", "min_", "amplitude_", "var_", "avg_", and "stddev_", which match those that we found had high rates of missing values.  We will exclude these from our report and stick to the raw accelerometer output.  
+
+In addition, there are a few extraneous variables which we will also exclude from our final datasets.  These include X (a measure of row number), along with the subject name, timestamps, and collection windows, which will only serve to bias our model if we keep them in.
+
+``` {r}
+toRemove <- grep("^(kurtosis_|skewness_|max_|min_|amplitude_|var_|avg_|stddev_)",
+               names(training))
+training.NArm <- training[, -c(1:7, toRemove)]
+testing.NArm <- testing[, -c(1:7, toRemove)]
+```
+
+For reference, the features we are excluding in our training.NArm dataset are given by:
+
+``` {r}
+'%notin%' <- Negate('%in%')
+names(training)[names(training) %notin% names(training.NArm)]
+```
+
+After pruning our data in this fashion, we will once again check for the prevalence of missing values:
+
+``` {r}
+data.frame(Training = c(sum(is.na(training)), sum(is.na(training.NArm))),
+           Testing = c(sum(is.na(testing)), sum(is.na(testing.NArm))),
+           row.names = c("Raw", "Summary Stats Removed"))
+```
+
+So, as we can see, removing the summary stats completely eliminates the missing values in our dataset.  Before we move on, we will perform a simple in-place replacement of our training and testing data sets for clarity.
+
+``` {r}
+training.NArm$classe <- as.factor(training.NArm$classe)
+training <- training.NArm
+testing <- testing.NArm
+rm(training.NArm)
+rm(testing.NArm)
+```
+
+# Cross-Validation and Model Selection
+Before we develop and train our model, we will set aside a portion of our training data for later use to estimate our out-of-sample error rate.  This can be done easily in the caret package with the createDataPartition() function:
+
+``` {r}
+inTrain <- createDataPartition(training$classe, p = 0.7, list = FALSE)
+crossTrain <- training[inTrain, ]
+crossTest <- training[-inTrain, ]
+```
+
+For our model selection, we will use a random forest approach, since it tends to be robust and have high accuracy on datasets around our size.  Even though these models don't necessarily need cross-validation due to the manner in which they are constructed, we will implement a thrice repeated, 5-fold cross-validation strategy so we can be extra sure to avoid overfitting and maximize out-of-sample accuracy.  This can be easily done during model training using the trControl parameter of caret's train() function.  Again, we will make sure to use the crossTrain dataset we created above to avoid biasing our out-of-sample error estimate.
+
+``` {r, cache = TRUE}
+# create parallel processing cluster
+cluster <- makeCluster(detectCores() - 1)
+registerDoParallel(cluster)
+
+# train model
+modControl <- trainControl(method = "repeatedcv", number = 5, repeats = 3, 
+                           allowParallel = TRUE)
+model <- train(classe ~ ., method = "rf", data = crossTrain,
+               trControl = modControl)
+
+# de-register parallel processing cluster
+stopCluster(cluster)
+registerDoSEQ()
+```
+
+After running the above step, we've arrived at our final model.  All that's left is to apply it to our cross-validation testing dataset and estimate our out-of-sample error:
+
+``` {r}
+confusionMatrix(predict(model, crossTest), crossTest$classe)
+```
+
+As we can see from the output, our model achieves a roughly **99.5% out-of-sample accuracy**, only failing to accurately categorize 30 of our 5885 test cases.
+
+# Quiz Predictions
+The final component of this assignment is to predict, using the model we have just developed, the activity classification of 20 new cases, which are stored in the previously downloaded testing dataset.  These will be compared to the correct answers during grading.
+
+``` {r}
+predictions <- predict(model, testing)
+predictions
+```
