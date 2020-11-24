@@ -1,0 +1,53 @@
+---
+title: "Allied Bombing Operations in WWII"
+author: "Eric Erkela"
+date: "11/24/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# THOR Data
+Theater History of Operations (THOR), is a painstakingly cultivated database of historic aerial bombings from World War I through Vietnam. The value of THOR is immense, and has already proven useful in finding unexploded ordinance in Southeast Asia and improving Air Force combat tactics. Our goal is to see where public discourse and innovation takes this data.
+
+This dataset combines digitized paper mission reports from WWII. It can be searched by date, conflict, geographic location and more than 60 other data elements to form a live-action sequence of the air war from 1939 to 1945. The records include U.S. and Royal Air Force data, as well as some Australian, New Zealand and South African air force missions.
+
+For more information, see: https://data.world/datamil/world-war-ii-thor-data 
+
+``` {r}
+library(dplyr, quietly = TRUE, warn.conflicts = FALSE)
+library(leaflet, quietly = TRUE)
+
+thor_data <- read.csv("THOR_WWII_DATA_CLEAN.csv")
+toPlot <- thor_data %>%
+  group_by(LATITUDE, LONGITUDE, MSNDATE) %>%
+  summarize(TGT_LOCATION = paste(unique(TGT_LOCATION), collapse = "/"),
+            TGT_TYPE = paste(unique(TGT_TYPE), collapse = "/"),
+            ORDNANCE = sum(TOTAL_TONS, na.rm = TRUE),
+            LOSSES = sum(AC_LOST, AC_DAMAGED, AC_DROPPING, na.rm = TRUE),
+            .groups = "drop")
+
+popups <- paste0(toPlot$MSNDATE, 
+                 ifelse(toPlot$TGT_LOCATION == "", "",
+                        paste0("<br>Target Location: ", 
+                               toPlot$TGT_LOCATION)),
+                 ifelse(toPlot$TGT_TYPE == "", "",
+                        paste0("<br>Target Type: ", 
+                               toPlot$TGT_TYPE)),
+                 ifelse(toPlot$ORDNANCE == 0, "",
+                        paste0("<br>Ordnance (tons): ", 
+                               toPlot$ORDNANCE)),
+                 ifelse(toPlot$LOSSES == 0, "",
+                        paste0("<br>Aircraft Losses: ", 
+                               toPlot$LOSSES))
+                 )
+toPlot %>%
+  leaflet() %>%
+  addTiles() %>%
+  addMarkers(lat = toPlot$LATITUDE, 
+             lng = toPlot$LONGITUDE, 
+             popup = popups,
+             clusterOptions = markerClusterOptions())
+```
