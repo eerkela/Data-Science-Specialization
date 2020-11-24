@@ -1,0 +1,1 @@
+This repository contains the coursework I have completed as part of Johns Hopkins University's Data Science Specialization, provided through Coursera.
