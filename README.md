@@ -7,3 +7,9 @@ https://www.coursera.org/specializations/jhu-data-science?
 And rendered R Markdown presentations can be found here:  
 https://rpubs.com/eerkela
 
+## Capstone Project
+The capstone project for this course is an n-gram text predictor.  It can be found at:
+https://eerkela.shinyapps.io/Smoothing_Comparison_For_NGram_Text_Prediction/
+
+And a slide deck describing it at:
+https://rpubs.com/eerkela/775520
