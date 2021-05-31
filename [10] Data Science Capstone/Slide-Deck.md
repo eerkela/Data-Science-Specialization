@@ -1,0 +1,57 @@
+---
+title: "Smoothing Comparison for n-gram Text Prediction"
+author: "Eric Erkela"
+date: "5/22/2021"
+output: 
+  ioslides_presentation:
+    keep_md: true
+---
+
+
+
+## Introduction
+Text prediction is such a ubiquitous technology that most virtual keyboards ship with a prediction model built right into their user interface, yet the inner workings of these models are rarely explained intuitively.  The app presented here attempts to do so, demystifying the backend details used to generate text predictions, while competing on:
+
+- **Memory consumption.**  The memory footprint of the prediction model can be adjusted by the end user, from over 500 MB to just 200, enabling the app to function on a wide variety of devices.
+- **Execution Time.**  The fastest models render results near real-time, thanks to a fast Radix-Trie implementation.
+- **Accuracy.**  The most sophisticated models carry up to 30% top-3 accuracy.
+
+## What is an $n-\text{gram}$?
+$n-\text{gram}$ language models leverage a Markov approach to text analysis, meaning they break input text up into continuous chunks of $n$ tokens.  For instance, given the input phrase
+
+$$\text{the quick brown fox jumped over the lazy dog}$$
+
+an $n = 2$ bigram model would produce the following output:
+
+$$(\text{the quick}), (\text{quick brown}), (\text{brown fox}), ..., (\text{lazy dog})$$
+
+To build a language model from this, we simply count the number of occurrences of each $n-\text{gram}$ across the input dataset and assign a probability to each according to its frequency.
+
+## Given a Query Phrase...
+
+$$\text{the quick brown fox jumped over the lazy}$$
+
+We can predict the next word by taking the last $n-1$ words and searching for $n-\text{grams}$ which complete them.  This would correctly return "dog" for our bigram model since it was the only word that follows "lazy" in our input data.  But what if our query phrase was
+
+$$\text{the quick brown fox jumped over the barking}$$
+
+Instead?  Our algorithm fails because we never observed "barking" in the input data.  This is why we need smoothing!
+
+Seven of the most common smoothing techniques are implemented in this app.  Be sure to try them all and check the "Description" tab for details on how each one works!
+
+## Interface
+![UI Diagram](User Interface (Annotated).png){width=100%}
+
+## Accuracy
+Performance metrics for each of the algorithms when applied to a 1% sample of held-out test data ($N = 270362$ individual predictions) are listed below:
+
+
+|     | Maximum Likelihood| Laplace| Good-Turing| Jelinek-Mercer| Katz Backoff| Kneser-Ney| Stupid Backoff|
+|:----|------------------:|-------:|-----------:|--------------:|------------:|----------:|--------------:|
+|Top1 |              0.065|   0.100|       0.100|          0.188|        0.186|      0.188|          0.186|
+|Top3 |              0.094|   0.173|       0.173|          0.300|        0.287|      0.300|          0.282|
+|Top5 |              0.107|   0.222|       0.222|          0.357|        0.338|      0.357|          0.325|
+
+\
+\
+SwiftKey, the provider of the training data for this project, advertise a 33% top-1 accuracy for their professional solution.

@@ -1,0 +1,199 @@
+---
+title: 'Capstone Project: Exploratory Analysis'
+author: "Eric Erkela"
+date: "3/27/2021"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Dependencies
+Listed below are all the packages required for this project, as well as their build versions and diagnostic info.  For more information on the quanteda Natural Language Processing (NLP) package, visit https://quanteda.io/
+
+``` {r dependencies, message=FALSE, warning=TRUE}
+require(dplyr)
+require(ggplot2)
+require(quanteda)
+require(readtext)
+```
+
+# Getting and Cleaning Data
+The data for this project come from SwiftKey and consist of unedited and unstructured text from blogs, Twitter, and news articles in 4 different languages (de-DE, en-US, fi-FI, and ru_RU).  The code block below will ensure that the data is present and accessible in the local environment before continuing on with the project.
+
+```{r download_data}
+# Download data:
+if (!file.exists("final")) {
+  dat_url <- "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+  dest_file <- "Coursera-Swiftkey.zip"
+  download.file(dat_url, dest_file)
+  unzip(dest_file)
+  file.remove(dest_file)
+  
+  # Clean up workspace:
+  rm(dat_url)
+  rm(dest_file)
+}
+```
+
+## Subsampling
+The full dataset that SwiftKey has provided is quite large (~100+ MB per file), and including all of it in our analysis slows processing to a crawl.  In addition, we will eventually need to curate our data into training and testing sets so we can properly build and verify our final prediction model.  As such, this presents a good opporunity to kill two birds with one stone and split each of our original data files into a reduced-size training and testing set upfront.
+
+The following code block will accomplish this, creating a randomly-chosen subset containing 30% of the original data and saving it in a .train.txt file alongside the original.  The remaining 70% will also be saved for convenience in a .test.txt file in the same location within the SwiftKey data directory.
+
+``` {r train_test_samples, message="hide"}
+# Create training and testing sets:
+build_samples <- function(prob=0.3, replace=FALSE) {
+  set.seed(1234)
+  for (f in list.files(file.path("final"), recursive=TRUE)) {
+    if (grepl(pattern = "(?<!train|test).txt", f, perl=TRUE)) {
+      f <- file.path("final", f)
+      output_name <- tools::file_path_sans_ext(basename(f))
+      train_path <- file.path(dirname(f), paste0(output_name, ".train.txt"))
+      test_path <- file.path(dirname(f), paste0(output_name, ".test.txt"))
+      if (!(file.exists(train_path) & file.exists(test_path)) | replace) {
+        text <- readLines(f)
+        in_train <- as.logical(rbinom(n=length(text), size=1, prob=prob))
+        train_connection <- file(train_path)
+        writeLines(text[in_train], train_connection)
+        close(train_connection)
+        test_connection <- file(test_path)
+        writeLines(text[-in_train], test_connection)
+        close(test_connection)
+      }
+    }
+  }
+}
+
+build_samples(prob=0.3, replace=FALSE)
+```
+
+## Tokenization and Profanity Filtering
+After creating our training and testing datasets, we're well on our way to beginning our exploratory analysis.  If we were to look at our data right now, however, we'd see that it's still unstructured, consisting entirely of context-free lines of text.  In order to start giving meaning to our data, we must first tokenize it.
+
+Tokenization is the process of extracting individual "tokens" (words, numbers, punctuation, etc.) from an input sentence, and is an integral part of nearly all NLP tasks.  The same is true for our use case, and before we move on to any exploratory analyses, we need to read in the data and split it into tokens.  
+
+This step also represents the best time to perform any desired token filtration (i.e. removing punctuation/non-word symbols and/or profanity).  To this end, we will use a list of 1300 profane words (in English) compiled by Carnegie Mellon University, as well as quanteda's internal remove_punct and remove_symbols flags to filter out the tokens we do not wish to include in our final model.  We could easily be more aggressive in this regard, but we must keep in mind that the more tokens that are removed at this stage, the more bias is introduced in our N-grams and the less accurate our final model will be.  As a result, one should always err on the side of conservatism in this regard.
+
+The following code block defines a function to load, tokenize, and simultaneously filter all of the training data for a particular language, combining the blogs, news, and Twitter datasets into a single, tokenized corpus.  This merging of data is intentionally done to limit the sample bias we introduce into our exploratory analysis and ensure that the models we create are as representative of raw, natural language as is feasibly possible.
+
+``` {r tokenization_filtration}
+# Tokenization and filtering:
+load_tokens <- function(language_code, filter=TRUE) {
+  fulltext <- vector()
+  for (f in list.files(file.path("final", language_code))) {
+    if (grepl(pattern = "\\.train\\.txt", f, perl=TRUE)) {
+      f <- file.path("final", language_code, f)
+      text <- readLines(f)
+      fulltext <- append(fulltext, text)
+    }
+  }
+  if (filter) {
+    if (!file.exists("profanity_list.txt")) {
+      profanity_url <- "https://www.cs.cmu.edu/~biglou/resources/bad-words.txt"
+      download.file(profanity_url, "profanity_list.txt")
+      rm(profanity_url)
+    }
+    profanity_list <- readLines("profanity_list.txt")
+    tokens(fulltext, remove_punct=TRUE, remove_symbols=TRUE) %>%
+      tokens_remove(pattern=profanity_list)
+  } else {
+    tokens(fulltext)
+  }
+}
+```
+
+Before we begin our exploratory analysis, we should first examine some diagnostic data about our filtered and unfiltered datasets to reassure ourselves that filtration has not significantly altered the content of the data, and that we retain enough information to make statistically relevant inferences of natural language.
+
+``` {r filtration_diagnostics, cache=TRUE}
+tok <- load_tokens("en_US", filter=TRUE)
+tok_nofilter <- load_tokens("en_US", filter=FALSE)
+
+rawdfm <- tok %>% dfm(tolower=TRUE)
+rawdfm_nofilter <- tok_nofilter %>% dfm(tolower=TRUE)
+
+data.frame(line.count = c(length(tok), length(tok_nofilter)),
+           token.count = c(sum(sapply(tok, length)), 
+                          sum(sapply(tok_nofilter, length))),
+           unique.tokens = c(ncol(rawdfm), ncol(rawdfm_nofilter)),
+           row.names = c('filtered', 'unfiltered'))
+```
+
+As we can see, filtering out punctuation, symbols, and profanity has reduced our overall token count by a significant margin, but these extraneous tokens account for only a small percentage of the total number of unique tokens, as would be expected.  Since we retain almost the full breadth of the language contained in the corpus, and have only removed tokens which we do not want to predict anyways, we can move on with confidence.
+
+# Exploratory Analysis
+The first step in building a predictive model for text is understanding the distribution and relationship between words and phrases.  Luckily, quanteda includes functionality to easily create and manipulate Document Feature Matrices (DFMs), which keep track of the frequency ranking of terms in the base text.  We will be using these in conjunction with quanteda's built-in $n-\text{gram}$ tokenizer to determine what the most common words and combinations of words are for our filtered dataset.
+
+First, individual words (unigrams):
+
+``` {r onegrams, echo=FALSE, cache=TRUE}
+onegram <- tok %>%
+  dfm(tolower=TRUE) %>%
+  textstat_frequency(n=20)
+
+g1 <- ggplot(onegram, aes(x=reorder(feature, frequency), y=frequency)) + 
+  geom_bar(stat="identity", fill=2) + 
+  labs(title = "Top 20 Unigrams", x = "", y = "Frequency") + 
+  coord_flip()
+
+g1
+```
+
+Next, 2-word combinations (bigrams):
+
+``` {r twograms, echo=FALSE, cache=TRUE}
+twogram <- tok %>%
+  tokens_ngrams(n=2) %>%
+  dfm(tolower=TRUE) %>%
+  textstat_frequency(n=20)
+
+g2 <- ggplot(twogram, aes(x=reorder(feature, frequency), y=frequency)) + 
+  geom_bar(stat="identity", fill=3) + 
+  labs(title = "Top 20 Bigrams", x = "", y = "Frequency") + 
+  coord_flip()
+
+g2
+```
+
+Finally, trigrams, or combinations of 3 words:
+
+``` {r threegrams, echo=FALSE, cache=TRUE}
+threegram <- tok %>%
+  tokens_ngrams(n=3) %>%
+  dfm(tolower=TRUE) %>%
+  textstat_frequency(n=20)
+
+g3 <- ggplot(threegram, aes(x=reorder(feature, frequency), y=frequency)) + 
+  geom_bar(stat="identity", fill=4) + 
+  labs(title = "Top 20 Trigrams", x = "", y = "Frequency") + 
+  coord_flip()
+
+g3
+```
+
+As we can see, as we increase $n$ in our $n-\text{gram}$ analysis, we can already see a degree of emergent structure becoming visible that hints at the eventual strategy we will implement in our prediction algorithm.
+
+## Just how common are the most common terms?
+One way someone might phrase this question is to ask how many unique unigrams we'd need to cover an arbitrary amount (say 50%?) of the text in a given corpus.  Luckily, we have all the information needed to evaluate this statement for our provided data.
+
+``` {r top_50percent_english, cache=TRUE}
+total_count <- sum(onegram$frequency)
+tok %>%
+  dfm(tolower=TRUE) %>%
+  textstat_frequency() %>%
+  mutate(cumprop = cumsum(frequency / total_count)) %>%
+  filter(cumprop <= 0.5)
+```
+
+It turns out just 5 unique words cover about 50% of all words observed in our corpus.  What about the top 90% of all observed words?
+
+``` {r top_90percent_english, cache=TRUE}
+tok %>%
+  dfm(tolower=TRUE) %>%
+  textstat_frequency() %>%
+  mutate(cumprop = cumsum(frequency / total_count)) %>%
+  filter(cumprop <= 0.9)
+```
