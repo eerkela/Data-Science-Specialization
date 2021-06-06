@@ -1,3 +1,6 @@
+# UPDATE:
+As of I June 4th, 2021, I have officially completed the Data Science Specialization.  Here is a link to the [completed certificate](https://coursera.org/share/0c2245fccac71ace6884c5c6cc2acb99)
+
 # Data Science Specialization
 This repository contains all the coursework I have completed as part of Johns Hopkins University's Data Science Specialization, provided through Coursera
 
@@ -26,4 +29,4 @@ Links to the coursera certificates I earned as a part of completing this course 
 - [Regression Models](https://coursera.org/share/e2e42b95e44d39a66ecf1af9a74602a1)
 - [Practical Machine Learning](https://coursera.org/share/c58ff25c185fa23dbff2125af52a2fcc)
 - [Developing Data Products](https://coursera.org/share/f41626392f084fafcc8a35c23fc368a5)
-- Data Science Capstone (submitted, awaiting grade)
+- [Data Science Capstone](https://coursera.org/share/c62533690a8550642d7c5a2903f2abbd)
