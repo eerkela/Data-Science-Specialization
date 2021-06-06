@@ -1,5 +1,5 @@
 # UPDATE:
-As of I June 4th, 2021, I have officially completed the Data Science Specialization.  Here is a link to the [completed certificate](https://coursera.org/share/0c2245fccac71ace6884c5c6cc2acb99)
+As of June 4th, 2021, I have officially completed the Data Science Specialization.  Here is a link to the [completed certificate](https://coursera.org/share/0c2245fccac71ace6884c5c6cc2acb99)
 
 # Data Science Specialization
 This repository contains all the coursework I have completed as part of Johns Hopkins University's Data Science Specialization, provided through Coursera
