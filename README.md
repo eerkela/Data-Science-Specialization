@@ -18,8 +18,6 @@ https://rpubs.com/eerkela/775520
 Links to the coursera certificates I earned as a part of completing this course are provided below:
 
 [Specialization Certificate](https://coursera.org/share/0c2245fccac71ace6884c5c6cc2acb99)
-
-## Courses
 - [The Data Scientist's Toolbox](https://coursera.org/share/e2ee06ceaecfd0d811be107d9ed5b61b)
 - [R Programming](https://coursera.org/share/e1ee5c20384b1c84243c8620e003dc6c)
 - [Getting and Cleaning Data](https://coursera.org/share/b84fece59c36f2a7fe662f50279703be)
