@@ -16,6 +16,7 @@ The capstone project class will allow students to create a usable/public data pr
 [Link to Certificate](https://coursera.org/share/c62533690a8550642d7c5a2903f2abbd)
 
 **Info**
+
 The finished application can be found at this link:
 https://eerkela.shinyapps.io/Smoothing_Comparison_For_NGram_Text_Prediction/
 
