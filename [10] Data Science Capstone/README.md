@@ -1,10 +1,8 @@
-**About this Course** (from [Coursera](https://www.coursera.org/learn/data-science-project?specialization=jhu-data-science)):
-
+# About this Course (from [Coursera](https://www.coursera.org/learn/data-science-project?specialization=jhu-data-science)):
 The capstone project class will allow students to create a usable/public data product that can be used to show your skills to potential employers. Projects will be drawn from real-world problems and will be conducted with industry, government, and academic partners.
 
 
-**Modules**:
-
+## Modules:
 - Week 1: Understanding the Problem, Getting and Cleaning Data
 - Week 2: Exploratory Data Analysis, Modeling, Milestone Report
 - Week 3: Prediction Model
@@ -15,8 +13,7 @@ The capstone project class will allow students to create a usable/public data pr
 
 [Link to Certificate](https://coursera.org/share/c62533690a8550642d7c5a2903f2abbd)
 
-**Info**
-
+## Info
 The finished application can be found at this link:
 https://eerkela.shinyapps.io/Smoothing_Comparison_For_NGram_Text_Prediction/
 
