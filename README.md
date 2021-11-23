@@ -2,7 +2,7 @@
 This repository contains all the coursework I have completed as part of Johns Hopkins University's Data Science Specialization, provided through Coursera.
 
 The specialization can be found here:  
-https://www.coursera.org/specializations/jhu-data-science?
+https://www.coursera.org/specializations/jhu-data-science
 
 Rendered R Markdown presentations I've created as park of this specialization can be found here:  
 https://rpubs.com/eerkela
